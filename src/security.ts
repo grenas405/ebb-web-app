@@ -11,8 +11,12 @@ import type { Kv } from "./kv.ts";
  * Hardened response headers (OWASP Secure Headers Project).
  * A strict CSP is feasible because all markup is server-rendered and the only
  * script is our own first-party /app.js (no inline scripts, no third parties).
+ *
+ * `secure` indicates the request arrived over HTTPS. HSTS is only emitted then:
+ * sending it over plain HTTP makes browsers force-upgrade to https:// (and the
+ * page + its CSS/JS fail to load when there is no TLS listener, e.g. local dev).
  */
-export function securityHeaders(): Headers {
+export function securityHeaders(secure: boolean): Headers {
   const h = new Headers();
   h.set(
     "Content-Security-Policy",
@@ -31,15 +35,15 @@ export function securityHeaders(): Headers {
   h.set("X-Frame-Options", "DENY");
   h.set("Referrer-Policy", "strict-origin-when-cross-origin");
   h.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-  h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   h.set("Cross-Origin-Opener-Policy", "same-origin");
+  if (secure) h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   return h;
 }
 
 /** Merge security headers into an existing Response (returns a new Response). */
-export function withSecurity(res: Response): Response {
+export function withSecurity(res: Response, secure: boolean): Response {
   const merged = new Headers(res.headers);
-  for (const [k, v] of securityHeaders()) merged.set(k, v);
+  for (const [k, v] of securityHeaders(secure)) merged.set(k, v);
   return new Response(res.body, { status: res.status, headers: merged });
 }
 
@@ -116,8 +120,10 @@ export function readCsrfCookie(req: Request): string | null {
 }
 
 /** Build a Set-Cookie header value for the CSRF double-submit token. */
-export function csrfCookie(token: string): string {
+export function csrfCookie(token: string, secure: boolean): string {
   // Not HttpOnly: the double-submit pattern requires the page to echo it back
-  // in a hidden field, but it is SameSite=Strict + Secure to block CSRF/leaks.
-  return `csrf=${encodeURIComponent(token)}; Path=/; SameSite=Strict; Secure; Max-Age=7200`;
+  // in a hidden field. SameSite=Strict blocks CSRF; the Secure flag is added
+  // only over HTTPS (a Secure cookie is silently dropped over plain HTTP).
+  const flags = secure ? "; Secure" : "";
+  return `csrf=${encodeURIComponent(token)}; Path=/; SameSite=Strict${flags}; Max-Age=7200`;
 }

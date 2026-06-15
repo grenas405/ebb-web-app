@@ -44,33 +44,45 @@ async function tryStatic(req: Request, staticRoot: string): Promise<Response | n
 async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Response> {
   const url = new URL(req.url);
   const remote = (info.remoteAddr as Deno.NetAddr).hostname;
+  // HTTPS either directly (url.protocol) or reported by a trusted proxy.
+  const secure = url.protocol === "https:" ||
+    (config.trustProxy && req.headers.get("x-forwarded-proto") === "https");
   const ctx: Ctx = {
     kv,
     config,
     url,
     ip: clientIp(req, remote, config.trustProxy),
+    secure,
   };
 
-  // 1. Dynamic routes.
-  const handler = match(routes, req.method, url.pathname);
-  if (handler) return withSecurity(await handler(req, ctx));
+  // 1. Dynamic routes. HEAD is served by the matching GET handler with the
+  //    body stripped, per HTTP semantics.
+  const isHead = req.method === "HEAD";
+  const handler = match(routes, isHead ? "GET" : req.method, url.pathname);
+  if (handler) {
+    const res = withSecurity(await handler(req, ctx), secure);
+    return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+  }
 
   // 2. Static assets from fsRoot (only for safe methods).
-  if (req.method === "GET" || req.method === "HEAD") {
+  if (req.method === "GET" || isHead) {
     const asset = await tryStatic(req, config.staticRoot);
-    if (asset) return withSecurity(asset);
+    if (asset) return withSecurity(asset, secure);
   }
 
   // 3. Fallback.
-  return withSecurity(h.notFound());
+  return withSecurity(h.notFound(), secure);
 }
 
 Deno.serve({
   port: config.port,
   hostname: config.hostname,
   onListen: ({ hostname, port }) => {
+    // Show a browser-friendly host: 0.0.0.0 binds all interfaces but some
+    // browsers won't navigate to it — point the user at localhost instead.
+    const host = hostname === "0.0.0.0" || hostname === "::" ? "localhost" : hostname;
     console.log(`%c⚖  Esmeralda's Bail Bonds`, "color:#ffd23f;font-weight:bold");
-    console.log(`   Serving on http://${hostname}:${port}`);
+    console.log(`   Serving on http://${host}:${port}  (bound to ${hostname})`);
     console.log(`   Static fsRoot: ${config.staticRoot}`);
   },
 }, handle);

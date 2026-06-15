@@ -15,6 +15,8 @@ export interface Ctx {
   readonly config: RuntimeConfig;
   readonly url: URL;
   readonly ip: string;
+  /** True when the request arrived over HTTPS (governs HSTS + Secure cookies). */
+  readonly secure: boolean;
 }
 
 export type Handler = (req: Request, ctx: Ctx) => Response | Promise<Response>;

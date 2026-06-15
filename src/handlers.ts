@@ -64,12 +64,12 @@ export async function calculatorSubmit(req: Request, _ctx: Ctx): Promise<Respons
 }
 
 /** GET /contact — issues a fresh CSRF token via double-submit cookie. */
-export function contact(_req: Request, _ctx: Ctx): Response {
+export function contact(_req: Request, ctx: Ctx): Response {
   const token = newCsrfToken();
   return html(
     view.layout("Get Help Now", view.contactPage(token), { active: "contact" }),
     200,
-    { "set-cookie": csrfCookie(token) },
+    { "set-cookie": csrfCookie(token, ctx.secure) },
   );
 }
 
@@ -87,7 +87,7 @@ export async function contactSubmit(req: Request, ctx: Ctx): Promise<Response> {
         },
       ),
       429,
-      { "set-cookie": csrfCookie(newCsrfToken()), "retry-after": "60" },
+      { "set-cookie": csrfCookie(newCsrfToken(), ctx.secure), "retry-after": "60" },
     );
   }
 
@@ -107,7 +107,7 @@ export async function contactSubmit(req: Request, ctx: Ctx): Promise<Response> {
         },
       ),
       403,
-      { "set-cookie": csrfCookie(fresh) },
+      { "set-cookie": csrfCookie(fresh, ctx.secure) },
     );
   }
 
@@ -123,7 +123,7 @@ export async function contactSubmit(req: Request, ctx: Ctx): Promise<Response> {
     return html(
       view.layout("Get Help Now", view.contactPage(fresh, result.error), { active: "contact" }),
       400,
-      { "set-cookie": csrfCookie(fresh) },
+      { "set-cookie": csrfCookie(fresh, ctx.secure) },
     );
   }
 
