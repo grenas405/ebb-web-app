@@ -3,15 +3,15 @@
  *
  * The request pipeline is a small, readable composition:
  *   request → route match → handler → security headers → response
- * Everything is built on Deno's native APIs only (Deno.serve, Deno.stat,
- * Deno.open) — no third-party HTTP framework.
+ * Static assets are served from fsRoot by @std/http's serveDir. The std
+ * dependencies are vendored into ./vendor, so the app runs fully offline.
  */
 
+import { serveDir } from "@std/http/file-server";
 import { loadRuntimeConfig } from "./src/config.ts";
 import { openKv, seedTestimonials } from "./src/kv.ts";
 import { clientIp, withSecurity } from "./src/security.ts";
 import { type Ctx, get, match, post, type Route } from "./src/router.ts";
-import { serveStatic } from "./src/static.ts";
 import * as h from "./src/handlers.ts";
 
 /** The declarative route table — the app's surface area at a glance. */
@@ -35,6 +35,12 @@ await seedTestimonials(kv);
 async function headOf(res: Response): Promise<Response> {
   await res.body?.cancel();
   return new Response(null, { status: res.status, headers: res.headers });
+}
+
+/** Serve a file from fsRoot via serveDir; returns null when nothing matches. */
+async function tryStatic(req: Request, fsRoot: string): Promise<Response | null> {
+  const res = await serveDir(req, { fsRoot, quiet: true, enableCors: false });
+  return res.status === 404 ? null : res;
 }
 
 /** The single fetch handler: route → static → 404, all security-wrapped. */
@@ -61,13 +67,10 @@ async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Respon
     return isHead ? await headOf(res) : res;
   }
 
-  // 2. Static assets from fsRoot (only for safe methods).
+  // 2. Static assets from fsRoot. serveDir handles GET and HEAD itself.
   if (req.method === "GET" || isHead) {
-    const asset = await serveStatic(config.staticRoot, url.pathname);
-    if (asset) {
-      const res = withSecurity(asset, secure);
-      return isHead ? await headOf(res) : res;
-    }
+    const asset = await tryStatic(req, config.staticRoot);
+    if (asset) return withSecurity(asset, secure);
   }
 
   // 3. Fallback.

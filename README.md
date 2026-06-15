@@ -1,9 +1,9 @@
 # Esmeralda's Bail Bonds — Web App Demo
 
 A fast, mobile-first marketing and lead-capture web app for **Esmeralda's Bail Bonds**, 2801 S
-Shields Blvd, Oklahoma City, OK 73129 — built on [Deno](https://deno.com) using **only native Deno
-APIs** (`Deno.serve`, `Deno.openKv`, `Deno.stat`/`Deno.open`). No third-party HTTP framework and no
-external dependencies.
+Shields Blvd, Oklahoma City, OK 73129 — built on [Deno](https://deno.com) with `Deno.serve`,
+`Deno.openKv`, and the Deno standard library (`@std/http`). The std dependencies are **vendored into
+`./vendor`**, so the app runs **fully offline** on any OS with no network fetch.
 
 > Designed for Oklahoma City families in a stressful moment: big type, big buttons, one-tap calling,
 > and an honest, no-jargon walkthrough of how bail works in Oklahoma.
@@ -33,12 +33,20 @@ Small, explicit, composable functions — each module does one thing:
 | `src/kv.ts`       | Deno KV data layer (leads, testimonials, analytics)   |
 | `src/validate.ts` | Boundary input validation returning typed `Result`s   |
 | `src/security.ts` | OWASP primitives: headers, escaping, CSRF, rate limit |
-| `src/static.ts`   | Native static-file serving (`Deno.stat`/`Deno.open`)  |
 | `static/`         | `styles.css` + progressive-enhancement `app.js`       |
 
-Static assets are served from **`fsRoot`** by `src/static.ts`, which streams files with
-`Deno.open(...).readable` and sets explicit content types — no `@std/http`, no MIME sniffing.
-Path-traversal (`..`, encoded slashes, null bytes) is rejected before any filesystem access.
+Static assets are served from **`fsRoot`** via `@std/http`'s `serveDir`. The `fsRoot` path is
+derived with `@std/path`'s `fromFileUrl(new URL("../static", import.meta.url))` — **not**
+`URL.pathname`, which would yield an invalid `/C:/...` string on Windows. This makes asset serving
+correct on every OS. `serveDir` confines requests to `fsRoot`, so path-traversal attempts cannot
+escape it.
+
+### Offline / air-gapped operation
+
+The demo is meant to run on a Windows host with **no internet connection**. To make that reliable,
+`deno.json` sets `"vendor": true` and the resolved std modules are committed under `./vendor`. Deno
+loads them from disk, so `deno run` never reaches the network. After changing dependencies, refresh
+the cache with `deno cache main.ts` and commit the updated `vendor/` + `deno.lock`.
 
 ### Security (OWASP-aligned)
 

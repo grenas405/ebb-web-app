@@ -5,6 +5,8 @@
  * configuration. No side effects, no I/O. Everything else composes over it.
  */
 
+import { fromFileUrl } from "@std/path";
+
 /** Immutable business profile for Esmeralda's Bail Bonds. */
 export const BUSINESS = {
   name: "Esmeralda's Bail Bonds",
@@ -36,12 +38,12 @@ export interface RuntimeConfig {
   readonly port: number;
   readonly hostname: string;
   /**
-   * The static-asset directory as a `file://` URL (with trailing slash).
-   * Kept as a URL — not a path string — so Deno's native FS APIs resolve it
-   * correctly on every platform, including Windows where `URL.pathname` would
-   * yield an invalid `/C:/...` form.
+   * Absolute filesystem path to the static-asset directory, in the OS-native
+   * form `@std/http`'s serveDir expects. We derive it with `fromFileUrl` (not
+   * `URL.pathname`) so it is correct on every platform — notably Windows, where
+   * `URL.pathname` yields an invalid `/C:/...` string.
    */
-  readonly staticRoot: URL;
+  readonly staticRoot: string;
   /** Trust X-Forwarded-For (only behind a known proxy). */
   readonly trustProxy: boolean;
 }
@@ -51,8 +53,9 @@ export function loadRuntimeConfig(): RuntimeConfig {
   return {
     port: Number(Deno.env.get("PORT") ?? "8000"),
     hostname: Deno.env.get("HOST") ?? "0.0.0.0",
-    // Trailing slash matters: it makes the dir a base for URL resolution.
-    staticRoot: new URL("../static/", import.meta.url),
+    // Resolve ../static relative to this module, then convert the file URL to a
+    // native path (C:\... on Windows, /... on POSIX) for serveDir's fsRoot.
+    staticRoot: fromFileUrl(new URL("../static", import.meta.url)),
     trustProxy: Deno.env.get("TRUST_PROXY") === "1",
   };
 }

@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] — 2026-06-15
+
+### Changed
+
+- **Reintroduced `@std/http` for static serving, now vendored for offline use.** `serveDir` again
+  serves files from `fsRoot`, replacing the hand-rolled `src/static.ts` (removed). To keep the
+  cross-platform fix, `fsRoot` is derived with `@std/path`'s
+  `fromFileUrl(new URL("../static", import.meta.url))` instead of `URL.pathname`, so it resolves
+  correctly on Windows (`C:\...`) and POSIX.
+
+### Added
+
+- **Vendored dependencies for fully offline operation.** `deno.json` sets `"vendor": true` and the
+  resolved `@std/http` + `@std/path` modules are committed under `./vendor` (~1 MB). The Windows
+  demo host runs with no network access; `deno run` loads everything from disk. `deno.lock` is
+  committed for reproducibility.
+
 ## [1.1.1] — 2026-06-15
 
 ### Fixed
