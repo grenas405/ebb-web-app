@@ -1,8 +1,9 @@
 # Esmeralda's Bail Bonds — Web App Demo
 
 A fast, mobile-first marketing and lead-capture web app for **Esmeralda's Bail Bonds**, 2801 S
-Shields Blvd, Oklahoma City, OK 73129 — built in [Deno](https://deno.com) with the standard library
-(`@std/http`) and **Deno KV**.
+Shields Blvd, Oklahoma City, OK 73129 — built on [Deno](https://deno.com) using **only native Deno
+APIs** (`Deno.serve`, `Deno.openKv`, `Deno.stat`/`Deno.open`). No third-party HTTP framework and no
+external dependencies.
 
 > Designed for Oklahoma City families in a stressful moment: big type, big buttons, one-tap calling,
 > and an honest, no-jargon walkthrough of how bail works in Oklahoma.
@@ -32,9 +33,12 @@ Small, explicit, composable functions — each module does one thing:
 | `src/kv.ts`       | Deno KV data layer (leads, testimonials, analytics)   |
 | `src/validate.ts` | Boundary input validation returning typed `Result`s   |
 | `src/security.ts` | OWASP primitives: headers, escaping, CSRF, rate limit |
+| `src/static.ts`   | Native static-file serving (`Deno.stat`/`Deno.open`)  |
 | `static/`         | `styles.css` + progressive-enhancement `app.js`       |
 
-Static assets are served from **`fsRoot`** via `@std/http`'s `serveDir`.
+Static assets are served from **`fsRoot`** by `src/static.ts`, which streams files with
+`Deno.open(...).readable` and sets explicit content types — no `@std/http`, no MIME sniffing.
+Path-traversal (`..`, encoded slashes, null bytes) is rejected before any filesystem access.
 
 ### Security (OWASP-aligned)
 

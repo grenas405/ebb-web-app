@@ -1,16 +1,11 @@
 {
   "name": "esmeraldas-bail-bonds",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "exports": "./main.ts",
   "tasks": {
     "dev": "deno run --watch --allow-net --allow-read --allow-env --unstable-kv main.ts",
     "start": "deno run --allow-net --allow-read --allow-env --unstable-kv main.ts",
     "check": "deno check main.ts && deno lint && deno fmt --check"
-  },
-  "imports": {
-    "@std/http": "jsr:@std/http@^1.0.13",
-    "@std/http/file-server": "jsr:@std/http@^1.0.13/file-server",
-    "@std/media-types": "jsr:@std/media-types@^1.1.0"
   },
   "fmt": {
     "lineWidth": 100,

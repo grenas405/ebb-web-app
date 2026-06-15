@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.0] — 2026-06-15
+
+### Changed
+
+- **Removed the `@std/http` dependency — the app now uses only native Deno APIs.** Static-file
+  serving was reimplemented in `src/static.ts` on top of `Deno.stat` and `Deno.open(...).readable`,
+  replacing `@std/http`'s `serveDir`. `deno.json` no longer declares any imports and the project has
+  zero external dependencies.
+- Content types are set from an explicit extension map (no MIME sniffing), and path-traversal (`..`,
+  encoded slashes, backslashes, null bytes) is rejected before any filesystem access.
+- `HEAD` responses now cancel the underlying file stream before dropping the body, preventing
+  file-descriptor leaks.
+
 ## [1.0.2] — 2026-06-15
 
 ### Added

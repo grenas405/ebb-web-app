@@ -3,14 +3,15 @@
  *
  * The request pipeline is a small, readable composition:
  *   request → route match → handler → security headers → response
- * Static assets are served from fsRoot via @std/http's serveDir.
+ * Everything is built on Deno's native APIs only (Deno.serve, Deno.stat,
+ * Deno.open) — no third-party HTTP framework.
  */
 
-import { serveDir } from "@std/http/file-server";
 import { loadRuntimeConfig } from "./src/config.ts";
 import { openKv, seedTestimonials } from "./src/kv.ts";
 import { clientIp, withSecurity } from "./src/security.ts";
 import { type Ctx, get, match, post, type Route } from "./src/router.ts";
+import { serveStatic } from "./src/static.ts";
 import * as h from "./src/handlers.ts";
 
 /** The declarative route table — the app's surface area at a glance. */
@@ -30,14 +31,10 @@ const config = loadRuntimeConfig();
 const kv = await openKv();
 await seedTestimonials(kv);
 
-/** Serve a file from fsRoot; returns null when no file matches the path. */
-async function tryStatic(req: Request, staticRoot: string): Promise<Response | null> {
-  const res = await serveDir(req, {
-    fsRoot: staticRoot,
-    quiet: true,
-    enableCors: false,
-  });
-  return res.status === 404 ? null : res;
+/** Strip the body for HEAD, cancelling any underlying file stream first. */
+async function headOf(res: Response): Promise<Response> {
+  await res.body?.cancel();
+  return new Response(null, { status: res.status, headers: res.headers });
 }
 
 /** The single fetch handler: route → static → 404, all security-wrapped. */
@@ -61,13 +58,16 @@ async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Respon
   const handler = match(routes, isHead ? "GET" : req.method, url.pathname);
   if (handler) {
     const res = withSecurity(await handler(req, ctx), secure);
-    return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    return isHead ? await headOf(res) : res;
   }
 
   // 2. Static assets from fsRoot (only for safe methods).
   if (req.method === "GET" || isHead) {
-    const asset = await tryStatic(req, config.staticRoot);
-    if (asset) return withSecurity(asset, secure);
+    const asset = await serveStatic(config.staticRoot, url.pathname);
+    if (asset) {
+      const res = withSecurity(asset, secure);
+      return isHead ? await headOf(res) : res;
+    }
   }
 
   // 3. Fallback.
