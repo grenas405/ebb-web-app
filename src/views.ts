@@ -26,7 +26,7 @@ export function layout(title: string, body: string, opts: { active?: string } = 
   }.">
 <meta name="theme-color" content="#0d0d0d">
 <title>${escapeHtml(title)} · ${escapeHtml(BUSINESS.name)}</title>
-<link rel="preconnect" href="/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>

@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.0.2] — 2026-06-15
+
+### Added
+
+- **Branded SVG favicon** (`static/favicon.svg`, scales of justice in the brand palette), linked
+  from every page. Eliminates the `/favicon.ico` 404 console noise and adds polish in the browser
+  tab.
+
 ## [1.0.1] — 2026-06-15
 
 ### Fixed

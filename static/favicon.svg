@@ -1,0 +1,17 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-label="Esmeralda's Bail Bonds"
+>
+  <rect width="64" height="64" rx="12" fill="#0d0d0d" />
+  <rect x="3" y="3" width="58" height="58" rx="10" fill="none" stroke="#8b0000" stroke-width="3" />
+  <g fill="none" stroke="#ffd23f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="32" y1="13" x2="32" y2="51" />
+    <line x1="18" y1="20" x2="46" y2="20" />
+    <path d="M18 20 L12 33 H24 Z" />
+    <path d="M46 20 L40 33 H52 Z" />
+    <line x1="24" y1="51" x2="40" y2="51" />
+  </g>
+  <circle cx="32" cy="20" r="3.2" fill="#ffd23f" />
+</svg>
