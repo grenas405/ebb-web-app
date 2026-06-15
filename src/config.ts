@@ -48,14 +48,26 @@ export interface RuntimeConfig {
   readonly trustProxy: boolean;
 }
 
+/**
+ * Resolve the static-asset directory for serveDir's fsRoot.
+ *
+ * Run from local files (dev, VPS, the Windows demo host) `import.meta.url` is a
+ * `file://` URL, which we convert to a native OS path with `fromFileUrl`
+ * (C:\... on Windows, /... on POSIX — never the invalid `/C:/...` form). On
+ * hosts that load modules over `https://` (e.g. Deno Deploy), fall back to the
+ * URL pathname, since `fromFileUrl` only accepts file URLs.
+ */
+function resolveStaticRoot(): string {
+  const url = new URL("../static", import.meta.url);
+  return url.protocol === "file:" ? fromFileUrl(url) : url.pathname;
+}
+
 /** Read runtime config from the environment with safe defaults. */
 export function loadRuntimeConfig(): RuntimeConfig {
   return {
     port: Number(Deno.env.get("PORT") ?? "8000"),
     hostname: Deno.env.get("HOST") ?? "0.0.0.0",
-    // Resolve ../static relative to this module, then convert the file URL to a
-    // native path (C:\... on Windows, /... on POSIX) for serveDir's fsRoot.
-    staticRoot: fromFileUrl(new URL("../static", import.meta.url)),
+    staticRoot: resolveStaticRoot(),
     trustProxy: Deno.env.get("TRUST_PROXY") === "1",
   };
 }

@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.0] — 2026-06-15
+
+### Changed
+
+- **Dropped the committed `vendor/` directory and `"vendor": true`.** Per the intended workflow,
+  dependencies are now resolved from the local Deno cache (`deno cache main.ts`, run once while the
+  host has network) rather than vendored into the repo. `vendor/` is gitignored. `deno.lock` stays
+  committed so cached versions are pinned and integrity-checked.
+- **Hardened `staticRoot` resolution for Deno Deploy.** `fromFileUrl` only accepts `file://` URLs
+  and would throw where modules load over `https://` (e.g. Deno Deploy). Resolution now falls back
+  to the URL pathname for non-`file:` schemes, so `serveDir` works on a local host, a VPS, and
+  Deploy.
+
+### Added
+
+- **Deployment notes** in the README covering the offline Windows demo (warm the cache, then run
+  with `--cached-only`), a VPS (reverse proxy + `TRUST_PROXY`), and Deno Deploy (managed KV, JSR
+  imports).
+
 ## [1.2.0] — 2026-06-15
 
 ### Changed

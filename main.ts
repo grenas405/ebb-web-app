@@ -3,8 +3,8 @@
  *
  * The request pipeline is a small, readable composition:
  *   request → route match → handler → security headers → response
- * Static assets are served from fsRoot by @std/http's serveDir. The std
- * dependencies are vendored into ./vendor, so the app runs fully offline.
+ * Static assets are served from fsRoot by @std/http's serveDir. Dependencies
+ * resolve from the local Deno cache (warm it once with `deno cache main.ts`).
  */
 
 import { serveDir } from "@std/http/file-server";

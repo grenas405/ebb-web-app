@@ -4,6 +4,9 @@
 *.kv-wal
 kv.db*
 
+# Vendored deps are not committed — warm the local cache with `deno cache main.ts`
+vendor/
+
 # Editor / OS noise
 .DS_Store
 .idea/

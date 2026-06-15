@@ -41,12 +41,31 @@ derived with `@std/path`'s `fromFileUrl(new URL("../static", import.meta.url))` 
 correct on every OS. `serveDir` confines requests to `fsRoot`, so path-traversal attempts cannot
 escape it.
 
-### Offline / air-gapped operation
+### Offline demo on the Windows host
 
-The demo is meant to run on a Windows host with **no internet connection**. To make that reliable,
-`deno.json` sets `"vendor": true` and the resolved std modules are committed under `./vendor`. Deno
-loads them from disk, so `deno run` never reaches the network. After changing dependencies, refresh
-the cache with `deno cache main.ts` and commit the updated `vendor/` + `deno.lock`.
+The demo runs on a Windows host with **no internet connection**. The deps are _not_ vendored into
+the repo; instead, warm the local Deno cache **once while the host has network**, then run offline:
+
+```sh
+git pull origin main
+deno cache main.ts        # downloads @std/http + @std/path into DENO_DIR (needs net, one time)
+deno task start           # subsequent runs work fully offline
+```
+
+`deno.lock` is committed, so the cached versions are pinned and integrity-checked. To prove the
+cache is warm, run `deno run --cached-only -A --unstable-kv main.ts` (fails fast if anything is
+missing).
+
+## Deployment
+
+The same code runs unchanged on a VPS or Deno Deploy:
+
+- **VPS** — `git pull`, `deno cache main.ts`, then run `deno task start` behind a TLS-terminating
+  reverse proxy (set `TRUST_PROXY=1` so client IPs and HTTPS detection work). KV persists to a local
+  SQLite file.
+- **Deno Deploy** — push the repo; Deploy resolves the JSR imports from `deno.json` + `deno.lock`
+  and provides managed Deno KV automatically (no `--unstable-kv` flag needed). `staticRoot` already
+  handles Deploy's non-`file://` module URLs, so `serveDir` keeps working there.
 
 ### Security (OWASP-aligned)
 
