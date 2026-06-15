@@ -35,7 +35,13 @@ export const BUSINESS = {
 export interface RuntimeConfig {
   readonly port: number;
   readonly hostname: string;
-  readonly staticRoot: string;
+  /**
+   * The static-asset directory as a `file://` URL (with trailing slash).
+   * Kept as a URL — not a path string — so Deno's native FS APIs resolve it
+   * correctly on every platform, including Windows where `URL.pathname` would
+   * yield an invalid `/C:/...` form.
+   */
+  readonly staticRoot: URL;
   /** Trust X-Forwarded-For (only behind a known proxy). */
   readonly trustProxy: boolean;
 }
@@ -45,7 +51,8 @@ export function loadRuntimeConfig(): RuntimeConfig {
   return {
     port: Number(Deno.env.get("PORT") ?? "8000"),
     hostname: Deno.env.get("HOST") ?? "0.0.0.0",
-    staticRoot: new URL("../static", import.meta.url).pathname,
+    // Trailing slash matters: it makes the dir a base for URL resolution.
+    staticRoot: new URL("../static/", import.meta.url),
     trustProxy: Deno.env.get("TRUST_PROXY") === "1",
   };
 }

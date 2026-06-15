@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.1] — 2026-06-15
+
+### Fixed
+
+- **Static assets 404'd on Windows.** `staticRoot` was derived via `URL.pathname`, which produces an
+  invalid `/C:/Users/.../static` path on Windows, so `Deno.stat`/`Deno.open` never found the files.
+  The static root is now kept as a `file://` **URL** and passed straight to Deno's FS APIs (which
+  resolve file URLs correctly on every platform), and request paths are resolved against it with
+  `new URL()`. Verified cross-platform; traversal protection and MIME handling are unchanged.
+
 ## [1.1.0] — 2026-06-15
 
 ### Changed

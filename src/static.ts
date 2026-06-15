@@ -2,9 +2,12 @@
  * static.ts — Native static-file serving. No third-party deps.
  *
  * Uses only Deno's built-in filesystem APIs (Deno.stat, Deno.open) and the Web
- * Response/ReadableStream interfaces. Replaces @std/http's serveDir while
- * keeping the same OWASP posture: path-traversal is rejected, only regular
- * files are served, and content types are set explicitly (never sniffed).
+ * URL/Response/ReadableStream interfaces. Files are addressed as `file://` URLs
+ * rather than path strings, so resolution is correct on every platform —
+ * notably Windows, where a `URL.pathname` like `/C:/...` is not a valid path.
+ *
+ * OWASP posture: path-traversal is rejected, only regular files are served, and
+ * content types are set explicitly (never sniffed).
  */
 
 /** Extension → Content-Type. Explicit map avoids MIME sniffing surprises. */
@@ -35,11 +38,11 @@ function contentType(path: string): string {
 }
 
 /**
- * Join a URL pathname under `root`, rejecting anything that could escape it.
- * Returns null for traversal attempts, null bytes, or empty paths.
- * (Forward slashes are accepted by Deno's fs APIs on every platform.)
+ * Resolve a request pathname to a file URL under `root`, rejecting anything
+ * that could escape it. Returns null for traversal attempts, null bytes,
+ * backslashes, malformed encoding, or directory (non-file) requests.
  */
-function safeResolve(root: string, pathname: string): string | null {
+function resolveUnder(root: URL, pathname: string): URL | null {
   let decoded: string;
   try {
     decoded = decodeURIComponent(pathname);
@@ -48,31 +51,35 @@ function safeResolve(root: string, pathname: string): string | null {
   }
   if (decoded.includes("\0") || decoded.includes("\\")) return null;
   const parts = decoded.split("/").filter((p) => p.length > 0 && p !== ".");
-  if (parts.some((p) => p === "..")) return null; // no parent traversal
   if (parts.length === 0) return null; // a directory, not a file
-  return `${root}/${parts.join("/")}`;
+  if (parts.some((p) => p === "..")) return null; // no parent traversal
+
+  const target = new URL(parts.join("/"), root);
+  // Defense in depth: the resolved URL must still live under root.
+  if (!target.href.startsWith(root.href)) return null;
+  return target;
 }
 
 /**
- * Serve a file from `fsRoot` for the given URL pathname.
+ * Serve a file from `root` (a directory `file://` URL) for the given pathname.
  * Returns a streamed 200 Response, or null when no regular file matches
  * (caller decides the fallback, e.g. a 404 page).
  */
-export async function serveStatic(fsRoot: string, pathname: string): Promise<Response | null> {
-  const path = safeResolve(fsRoot, pathname);
-  if (!path) return null;
+export async function serveStatic(root: URL, pathname: string): Promise<Response | null> {
+  const fileUrl = resolveUnder(root, pathname);
+  if (!fileUrl) return null;
 
   let info: Deno.FileInfo;
   try {
-    info = await Deno.stat(path);
+    info = await Deno.stat(fileUrl);
   } catch {
     return null; // not found / not accessible
   }
   if (!info.isFile) return null;
 
-  const file = await Deno.open(path, { read: true });
+  const file = await Deno.open(fileUrl, { read: true });
   const headers = new Headers({
-    "content-type": contentType(path),
+    "content-type": contentType(fileUrl.pathname),
     "content-length": String(info.size),
     "cache-control": "public, max-age=3600",
   });

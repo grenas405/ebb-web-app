@@ -1,6 +1,6 @@
 {
   "name": "esmeraldas-bail-bonds",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "exports": "./main.ts",
   "tasks": {
     "dev": "deno run --watch --allow-net --allow-read --allow-env --unstable-kv main.ts",
