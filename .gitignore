@@ -1,0 +1,11 @@
+# Deno KV local database files (if created in-tree)
+*.kv
+*.kv-shm
+*.kv-wal
+kv.db*
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
