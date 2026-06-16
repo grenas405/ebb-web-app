@@ -2,8 +2,9 @@
 
 A fast, mobile-first marketing and lead-capture web app for **Esmeralda's Bail Bonds**, 2801 S
 Shields Blvd, Oklahoma City, OK 73129 — built on [Deno](https://deno.com) with `Deno.serve`,
-`Deno.openKv`, and the Deno standard library (`@std/http`). The std dependencies are **vendored into
-`./vendor`**, so the app runs **fully offline** on any OS with no network fetch.
+`Deno.openKv`, and the Deno standard library (`@std/http`, `@std/path`). Dependencies resolve from
+the local Deno cache, so the app runs **fully offline** on any OS once the cache is warmed (see
+[Offline demo](#offline-demo-on-the-windows-host)).
 
 > Designed for Oklahoma City families in a stressful moment: big type, big buttons, one-tap calling,
 > and an honest, no-jargon walkthrough of how bail works in Oklahoma.
