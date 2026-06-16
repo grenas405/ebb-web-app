@@ -13,10 +13,14 @@ export type Result<T> =
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const err = (error: string): Result<never> => ({ ok: false, error });
 
-/** Trim and bound the length of a free-text field. */
+/**
+ * Trim and bound the length of a free-text field. A missing field (null) is
+ * treated as empty, so an optional field (min 0) passes whether the form sends
+ * "" or omits it entirely, while a required field reports "is required".
+ */
 export function text(raw: unknown, field: string, min: number, max: number): Result<string> {
-  if (typeof raw !== "string") return err(`${field} is required.`);
-  const v = raw.trim();
+  const v = (typeof raw === "string" ? raw : "").trim();
+  if (v.length === 0) return min > 0 ? err(`${field} is required.`) : ok(v);
   if (v.length < min) return err(`${field} must be at least ${min} characters.`);
   if (v.length > max) return err(`${field} must be ${max} characters or fewer.`);
   return ok(v);

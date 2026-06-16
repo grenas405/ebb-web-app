@@ -33,6 +33,25 @@ export const BUSINESS = {
   ],
 } as const;
 
+/** Reference data for the local jail (used by the Find-an-Inmate page). */
+export const COUNTY_JAIL = {
+  name: "Oklahoma County Detention Center",
+  phone: "(405) 713-1000",
+  phoneTel: "+14057131000",
+  visitation: "(405) 713-2015",
+  address: "201 N Shartel Ave, Oklahoma City, OK 73102",
+  /** Official facility site with the resident/inmate search. */
+  inmateSearchUrl: "https://www.okcountydc.net/",
+} as const;
+
+/** Official court / corrections lookups linked from the Find-an-Inmate page. */
+export const COURT_RESOURCES = {
+  /** Oklahoma State Courts Network — dockets, charges, hearing dates. */
+  oscnUrl: "https://www.oscn.net/",
+  /** Oklahoma Dept. of Corrections offender search. */
+  docUrl: "https://oklahoma.gov/doc/offender-info.html",
+} as const;
+
 /** Runtime configuration resolved from the environment (12-factor style). */
 export interface RuntimeConfig {
   readonly port: number;
@@ -46,6 +65,11 @@ export interface RuntimeConfig {
   readonly staticRoot: string;
   /** Trust X-Forwarded-For (only behind a known proxy). */
   readonly trustProxy: boolean;
+  /**
+   * Optional webhook that receives new leads as JSON (Zapier/Make/a CRM).
+   * Unset = leads are logged + stored only, which keeps the offline demo working.
+   */
+  readonly notifyWebhookUrl: string | undefined;
 }
 
 /**
@@ -69,6 +93,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
     hostname: Deno.env.get("HOST") ?? "0.0.0.0",
     staticRoot: resolveStaticRoot(),
     trustProxy: Deno.env.get("TRUST_PROXY") === "1",
+    notifyWebhookUrl: Deno.env.get("NOTIFY_WEBHOOK_URL") || undefined,
   };
 }
 

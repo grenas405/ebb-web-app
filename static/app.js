@@ -1,5 +1,9 @@
 /* app.js — Progressive enhancement only. The site is fully functional without
-   it (server renders everything). First-party, no inline script, CSP-safe. */
+   it (server renders everything). First-party, no inline script, CSP-safe.
+
+   The calculator's result string is localized server-side and handed to us via
+   the output element's data-template attribute (with an {amt} placeholder), so
+   this script stays language-agnostic. */
 
 "use strict";
 
@@ -14,6 +18,7 @@ function enhanceCalculator() {
   if (!form) return;
   const input = form.querySelector("#bail");
   const out = form.querySelector("#calc-result");
+  const template = out.getAttribute("data-template") || "{amt}";
 
   const compute = () => {
     const bail = Number(String(input.value).replace(/[$,\s]/g, ""));
@@ -22,9 +27,7 @@ function enhanceCalculator() {
       return;
     }
     const premium = Math.round(bail * PREMIUM_RATE * 100) / 100;
-    out.textContent = `Estimated cost to a bondsman: ${usd(premium)} (our ${
-      PREMIUM_RATE * 100
-    }% premium).`;
+    out.textContent = template.replace("{amt}", usd(premium));
   };
 
   input.addEventListener("input", compute);

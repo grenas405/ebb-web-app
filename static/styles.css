@@ -170,6 +170,14 @@ a {
 .site-nav a[href="/contact"]:hover {
   background: var(--gold-soft);
 }
+.site-nav a.lang-toggle {
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-weight: 800;
+}
+.site-nav a.lang-toggle:hover {
+  background: rgba(255, 210, 63, 0.12);
+}
 
 /* ---- Buttons ---- */
 .btn {
@@ -357,6 +365,44 @@ a {
 }
 .steps p {
   margin: 0;
+}
+
+/* ---- Jail resources / checklist ---- */
+.card.resource {
+  display: flex;
+  flex-direction: column;
+}
+.card.resource p {
+  flex: 1;
+  margin-bottom: 18px;
+}
+.card.resource .btn {
+  align-self: flex-start;
+}
+.checklist {
+  max-width: 760px;
+  margin: 0 auto 18px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.checklist li {
+  position: relative;
+  padding: 14px 18px 14px 52px;
+  background: var(--panel);
+  border: 1px solid #2c2a2a;
+  border-left: 4px solid var(--gold);
+  border-radius: 10px;
+  font-weight: 600;
+}
+.checklist li::before {
+  content: "✓";
+  position: absolute;
+  left: 18px;
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 1.3rem;
 }
 
 /* ---- Locate / map ---- */

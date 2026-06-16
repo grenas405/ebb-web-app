@@ -8,6 +8,7 @@
 
 import type { Kv } from "./kv.ts";
 import type { RuntimeConfig } from "./config.ts";
+import type { Lang } from "./i18n.ts";
 
 /** Per-request context threaded to every handler. */
 export interface Ctx {
@@ -17,6 +18,8 @@ export interface Ctx {
   readonly ip: string;
   /** True when the request arrived over HTTPS (governs HSTS + Secure cookies). */
   readonly secure: boolean;
+  /** Language resolved from query/cookie/Accept-Language. */
+  readonly lang: Lang;
 }
 
 export type Handler = (req: Request, ctx: Ctx) => Response | Promise<Response>;

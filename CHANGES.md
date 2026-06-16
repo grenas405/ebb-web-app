@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.0] — 2026-06-16
+
+### Added
+
+- **Bilingual English / Spanish.** New `src/i18n.ts` owns every user-facing string as a typed `Copy`
+  bundle plus language resolution (precedence: `?lang=` query → `lang` cookie → `Accept-Language` →
+  English). A 🌐 nav toggle switches languages; the choice persists via cookie. `<html lang>`, the
+  meta description, and `hreflang` alternates all follow the active language. Views no longer hold
+  copy — they render a resolved `Copy` object.
+- **Instant new-lead alerts.** New `src/notify.ts` turns each saved lead into an alert via
+  composable transports: a console transport (always on, proves the feature offline) and an optional
+  webhook transport (`NOTIFY_WEBHOOK_URL`, POSTs JSON to Zapier/Make/a CRM/SMS). Best-effort and
+  non-blocking; every attempt is audited in KV and surfaced as "Alerts Sent" on the admin dashboard.
+- **Find-an-Inmate page (`/jail`).** Official links to the Oklahoma County jail roster, court
+  records (OSCN), and state offender search, plus a "what to have ready" checklist and the jail's
+  address/phone.
+- **SEO / discovery.** New `src/seo.ts` emits `BailBondsAgent` JSON-LD, OpenGraph/Twitter meta,
+  `/sitemap.xml`, and `/robots.txt`; layout adds a canonical link and `hreflang` alternates.
+
+### Fixed
+
+- **Optional form fields rejected when omitted.** `validate.text` treated a missing field (null) as
+  "required" even at `min: 0`; an absent optional field (e.g. facility/message submitted by a
+  non-browser client) now passes, while required fields still report "is required".
+
+### Changed
+
+- `app.js` is now language-agnostic: the calculator's result string is localized server-side and
+  passed via the output element's `data-template` attribute.
+- Admin dashboard gained an "Alerts Sent" stat.
+
 ## [1.3.0] — 2026-06-15
 
 ### Changed

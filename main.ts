@@ -11,6 +11,7 @@ import { serveDir } from "@std/http/file-server";
 import { loadRuntimeConfig } from "./src/config.ts";
 import { openKv, seedTestimonials } from "./src/kv.ts";
 import { clientIp, withSecurity } from "./src/security.ts";
+import { langCookie, resolveLang } from "./src/i18n.ts";
 import { type Ctx, get, match, post, type Route } from "./src/router.ts";
 import * as h from "./src/handlers.ts";
 
@@ -20,9 +21,12 @@ const routes: readonly Route[] = [
   get("/how-it-works", h.howItWorks),
   get("/calculator", h.calculator),
   post("/calculator", h.calculatorSubmit),
+  get("/jail", h.jail),
   get("/contact", h.contact),
   post("/contact", h.contactSubmit),
   get("/thank-you-sent", h.thankYouSent),
+  get("/sitemap.xml", h.sitemap),
+  get("/robots.txt", h.robots),
   get("/admin", h.admin),
   get("/health", h.health),
 ];
@@ -50,12 +54,21 @@ async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Respon
   // HTTPS either directly (url.protocol) or reported by a trusted proxy.
   const secure = url.protocol === "https:" ||
     (config.trustProxy && req.headers.get("x-forwarded-proto") === "https");
+  const lang = resolveLang(req, url);
   const ctx: Ctx = {
     kv,
     config,
     url,
     ip: clientIp(req, remote, config.trustProxy),
     secure,
+    lang,
+  };
+
+  // Persist an explicit ?lang= choice so it sticks across navigation.
+  const persistLang = url.searchParams.get("lang") === lang;
+  const finish = (res: Response) => {
+    if (persistLang) res.headers.append("set-cookie", langCookie(lang));
+    return res;
   };
 
   // 1. Dynamic routes. HEAD is served by the matching GET handler with the
@@ -64,7 +77,7 @@ async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Respon
   const handler = match(routes, isHead ? "GET" : req.method, url.pathname);
   if (handler) {
     const res = withSecurity(await handler(req, ctx), secure);
-    return isHead ? await headOf(res) : res;
+    return finish(isHead ? await headOf(res) : res);
   }
 
   // 2. Static assets from fsRoot. serveDir handles GET and HEAD itself.
@@ -74,7 +87,7 @@ async function handle(req: Request, info: Deno.ServeHandlerInfo): Promise<Respon
   }
 
   // 3. Fallback.
-  return withSecurity(h.notFound(), secure);
+  return finish(withSecurity(h.notFound(ctx), secure));
 }
 
 Deno.serve({

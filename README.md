@@ -10,30 +10,48 @@ Shields Blvd, Oklahoma City, OK 73129 — built on [Deno](https://deno.com) with
 
 ## Why this is a persuasive demo
 
-- **Captures leads 24/7.** Every contact submission is stored durably in Deno KV and surfaced on a
-  live admin dashboard — no database to provision.
+- **Captures leads 24/7 and alerts the bondsman instantly.** Every submission is stored durably in
+  Deno KV and triggers a new-lead alert (console + optional webhook to a CRM/SMS service). In bail
+  bonds, the first callback usually wins — this turns the site into a speed-to-contact machine.
+- **Fully bilingual (English / Spanish).** One-tap language toggle, `Se habla español` throughout —
+  a major differentiator for south OKC's Hispanic community. Choice persists via cookie and respects
+  the browser's `Accept-Language`.
+- **Find-an-Inmate hub.** Direct links to the Oklahoma County jail roster, court records (OSCN), and
+  state offender search, plus a "what to have ready" checklist — genuinely useful in the crisis
+  moment, which earns the call.
 - **Free bail estimate calculator.** Visitors instantly see the standard 10% Oklahoma premium,
   lowering the barrier to calling.
-- **Live trust signals.** A real KV-backed visit counter and seeded 5-star testimonials build
+- **Found by more people.** `BailBondsAgent` JSON-LD structured data, OpenGraph/Twitter cards,
+  `sitemap.xml`, and `robots.txt` help the business rank in "bail bonds near me" results.
+- **Live trust signals.** A KV-backed visit counter and seeded 5-star testimonials build
   credibility.
-- **Always reachable.** A sticky 24/7 call bar and click-to-call links appear on every page and
-  every screen size.
+- **Always reachable.** A sticky 24/7 call bar and click-to-call links on every page and screen
+  size.
 
 ## Architecture (Unix philosophy + OWASP)
 
 Small, explicit, composable functions — each module does one thing:
 
-| Module            | Responsibility                                        |
-| ----------------- | ----------------------------------------------------- |
-| `main.ts`         | Composition root: config → KV → routes → server       |
-| `src/config.ts`   | Immutable business profile + 12-factor runtime config |
-| `src/router.ts`   | Tiny exact-match router (`get`/`post`/`match`)        |
-| `src/handlers.ts` | One small handler per route                           |
-| `src/views.ts`    | Server-rendered HTML as pure string functions         |
-| `src/kv.ts`       | Deno KV data layer (leads, testimonials, analytics)   |
-| `src/validate.ts` | Boundary input validation returning typed `Result`s   |
-| `src/security.ts` | OWASP primitives: headers, escaping, CSRF, rate limit |
-| `static/`         | `styles.css` + progressive-enhancement `app.js`       |
+| Module            | Responsibility                                         |
+| ----------------- | ------------------------------------------------------ |
+| `main.ts`         | Composition root: config → KV → routes → server        |
+| `src/config.ts`   | Immutable business profile + 12-factor runtime config  |
+| `src/router.ts`   | Tiny exact-match router (`get`/`post`/`match`)         |
+| `src/handlers.ts` | One small handler per route                            |
+| `src/views.ts`    | Server-rendered HTML as pure string functions          |
+| `src/kv.ts`       | Deno KV data layer (leads, testimonials, analytics)    |
+| `src/validate.ts` | Boundary input validation returning typed `Result`s    |
+| `src/security.ts` | OWASP primitives: headers, escaping, CSRF, rate limit  |
+| `src/i18n.ts`     | All EN/ES copy + language resolution (`Copy` bundle)   |
+| `src/notify.ts`   | New-lead alert transports (console + optional webhook) |
+| `src/seo.ts`      | JSON-LD, social meta, sitemap, robots                  |
+| `static/`         | `styles.css` + progressive-enhancement `app.js`        |
+
+Each new feature is its own small module (Unix philosophy): `i18n` owns every user-facing string and
+the rules for picking a language, so views never branch on language — they render a resolved `Copy`
+object. `notify` turns a saved lead into an alert via composable transports that degrade gracefully
+(the webhook is skipped when unconfigured, so the offline demo always works). `seo` is pure string
+builders for discovery markup.
 
 Static assets are served from **`fsRoot`** via `@std/http`'s `serveDir`. The `fsRoot` path is
 derived with `@std/path`'s `fromFileUrl(new URL("../static", import.meta.url))` — **not**
@@ -98,12 +116,13 @@ Then open http://localhost:8000.
 
 ### Environment variables
 
-| Variable      | Default   | Purpose                                           |
-| ------------- | --------- | ------------------------------------------------- |
-| `PORT`        | `8000`    | Listen port                                       |
-| `HOST`        | `0.0.0.0` | Bind address                                      |
-| `ADMIN_TOKEN` | _(unset)_ | Token gating `/admin`; unset = admin disabled     |
-| `TRUST_PROXY` | _(unset)_ | Set to `1` to trust `X-Forwarded-For` (behind LB) |
+| Variable             | Default   | Purpose                                                                                     |
+| -------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `PORT`               | `8000`    | Listen port                                                                                 |
+| `HOST`               | `0.0.0.0` | Bind address                                                                                |
+| `ADMIN_TOKEN`        | _(unset)_ | Token gating `/admin`; unset = admin disabled                                               |
+| `TRUST_PROXY`        | _(unset)_ | Set to `1` to trust `X-Forwarded-For` (behind LB)                                           |
+| `NOTIFY_WEBHOOK_URL` | _(unset)_ | POST new leads as JSON here (Zapier/Make/CRM/SMS). Unset = log + store only (offline demo). |
 
 ## Routes
 
@@ -113,10 +132,15 @@ Then open http://localhost:8000.
 | GET    | `/how-it-works` | Oklahoma bail process + FAQ               |
 | GET    | `/calculator`   | Bail cost estimator                       |
 | POST   | `/calculator`   | Server-side estimate (no-JS fallback)     |
+| GET    | `/jail`         | Find-an-Inmate hub + jail/court resources |
 | GET    | `/contact`      | Lead-capture form (issues CSRF token)     |
-| POST   | `/contact`      | Validate + persist lead to KV             |
+| POST   | `/contact`      | Validate + persist lead, fire alert       |
+| GET    | `/sitemap.xml`  | Sitemap of public pages                   |
+| GET    | `/robots.txt`   | Crawler directives                        |
 | GET    | `/admin`        | Token-gated dashboard of leads + stats    |
 | GET    | `/health`       | JSON liveness probe                       |
+
+Add `?lang=es` (or `?lang=en`) to any page, or use the 🌐 toggle in the nav, to switch language.
 
 Try the admin dashboard: `http://localhost:8000/admin?token=YOUR_ADMIN_TOKEN`.
 

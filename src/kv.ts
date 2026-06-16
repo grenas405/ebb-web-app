@@ -24,6 +24,17 @@ export interface Testimonial {
   readonly text: string;
 }
 
+/** An audit record of a lead-notification delivery attempt. */
+export interface NotificationLog {
+  readonly id: string;
+  readonly leadId: string;
+  readonly createdAt: string;
+  /** Delivery channel that handled it, e.g. "log" or "webhook". */
+  readonly channel: string;
+  readonly ok: boolean;
+  readonly detail: string;
+}
+
 /** Open the default KV store (path resolved by Deno; durable on disk). */
 export function openKv(): Promise<Kv> {
   return Deno.openKv();
@@ -54,16 +65,30 @@ export async function bumpVisits(kv: Kv): Promise<number> {
   return v.value ? Number(v.value.value) : 0;
 }
 
+/** Persist a notification audit record and bump the notifications counter. */
+export async function saveNotification(kv: Kv, n: NotificationLog): Promise<void> {
+  await kv.set(["notification", n.createdAt, n.id], n);
+  await kv.atomic().sum(["stats", "notifications"], 1n).commit();
+}
+
+/** Aggregate stats for the admin dashboard. */
+export interface Stats {
+  readonly visits: number;
+  readonly leads: number;
+  readonly notifications: number;
+}
+
 /** Read aggregate stats for the admin dashboard. */
-export async function readStats(kv: Kv): Promise<{ visits: number; leads: number }> {
-  const [visits, leads] = await kv.getMany<[Deno.KvU64, Deno.KvU64]>([
+export async function readStats(kv: Kv): Promise<Stats> {
+  const [visits, leads, notifications] = await kv.getMany<
+    [Deno.KvU64, Deno.KvU64, Deno.KvU64]
+  >([
     ["stats", "visits"],
     ["stats", "leads"],
+    ["stats", "notifications"],
   ]);
-  return {
-    visits: visits.value ? Number(visits.value.value) : 0,
-    leads: leads.value ? Number(leads.value.value) : 0,
-  };
+  const n = (v: { value: Deno.KvU64 | null }) => v.value ? Number(v.value.value) : 0;
+  return { visits: n(visits), leads: n(leads), notifications: n(notifications) };
 }
 
 /** Seed testimonials once (idempotent) so the demo always has social proof. */
