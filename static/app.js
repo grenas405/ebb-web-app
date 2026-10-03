@@ -7,6 +7,11 @@
 
 "use strict";
 
+// Loaded from <head> (blocking, tiny, cached) so this class is set before first
+// paint: CSS collapses the mobile menu only when JS is present, so without JS
+// the nav simply renders expanded and stays usable.
+document.documentElement.classList.add("js");
+
 /** Oklahoma standard bail premium. Mirrors BUSINESS.premiumRate on the server. */
 const PREMIUM_RATE = 0.10;
 
@@ -39,4 +44,46 @@ function enhanceCalculator() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", enhanceCalculator);
+/** Hamburger menu: toggle, close on Escape / outside click / link tap / desktop resize. */
+function enhanceNav() {
+  const header = document.querySelector(".site-header");
+  const toggle = header && header.querySelector(".nav-toggle");
+  const menu = toggle && document.getElementById(toggle.getAttribute("aria-controls"));
+  if (!menu) return;
+  const desktop = globalThis.matchMedia("(min-width: 1280px)");
+
+  const setOpen = (open, { focusToggle = false } = {}) => {
+    header.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute(
+      "aria-label",
+      toggle.getAttribute(open ? "data-label-close" : "data-label-open"),
+    );
+    if (!open && focusToggle) toggle.focus();
+  };
+  const isOpen = () => header.classList.contains("is-open");
+
+  toggle.addEventListener("click", () => setOpen(!isOpen()));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isOpen()) setOpen(false, { focusToggle: true });
+  });
+  document.addEventListener("click", (e) => {
+    if (isOpen() && !header.contains(e.target)) setOpen(false);
+  });
+  menu.addEventListener("click", (e) => {
+    if (e.target.closest("a")) setOpen(false);
+  });
+  desktop.addEventListener("change", (e) => {
+    if (e.matches) setOpen(false);
+  });
+
+  // Elevate the header once the page scrolls under it.
+  const onScroll = () => header.classList.toggle("is-scrolled", globalThis.scrollY > 8);
+  globalThis.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  enhanceNav();
+  enhanceCalculator();
+});

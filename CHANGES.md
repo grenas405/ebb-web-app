@@ -15,6 +15,16 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **Redesigned header and navigation with a hamburger menu.** New brand lockup (inline SVG scales
+  mark + tagline), animated gold underline on links (`aria-current="page"` marks the current page),
+  a language pill, a ringing call-24/7 phone link, and a red "Get Help Now" button. The header blurs
+  behind content and lifts with a shadow on scroll. Below 1280px the links collapse behind an
+  accessible hamburger (`aria-expanded`/`aria-controls`, localized labels, closes on Escape, outside
+  click, link tap, or widening to desktop) that opens a full-width panel with large tap targets.
+  Progressive enhancement: `app.js` now loads from `<head>` and adds a `js` class before first
+  paint; without JS the mobile menu simply renders expanded. Tested from 320px to 2560px in English
+  and Spanish with no overflow.
+- `static/styles.css` is now `deno fmt`-clean, so `deno task check` passes again.
 - Removed the `deploy` section from `deno.json` so the app configuration (entrypoint, etc.) stays
   editable in the Deno Deploy dashboard.
 

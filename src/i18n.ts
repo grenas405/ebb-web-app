@@ -40,6 +40,14 @@ export interface Copy {
     readonly calc: string;
     readonly jail: string;
     readonly contact: string;
+    /** Short line under the brand name in the header. */
+    readonly tagline: string;
+    /** Small caption above the phone number in the header. */
+    readonly callLabel: string;
+    /** Visible text and accessible labels for the hamburger button. */
+    readonly menu: string;
+    readonly openMenu: string;
+    readonly closeMenu: string;
   };
   readonly callbar: string;
   readonly cta: { readonly callPrefix: string; readonly request: string };
@@ -134,6 +142,11 @@ const EN: Copy = {
     calc: "Bail Calculator",
     jail: "Find an Inmate",
     contact: "Get Help Now",
+    tagline: "24/7 Bail Bonds · Oklahoma City",
+    callLabel: "Call 24/7",
+    menu: "Menu",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
   },
   callbar: "Arrested? We answer 24/7 —",
   cta: { callPrefix: "Call Now:", request: "Request a Bondsman" },
@@ -325,6 +338,11 @@ const ES: Copy = {
     calc: "Calculadora",
     jail: "Buscar un Detenido",
     contact: "Ayuda Ahora",
+    tagline: "Fianzas 24/7 · Oklahoma City",
+    callLabel: "Llame 24/7",
+    menu: "Menú",
+    openMenu: "Abrir menú",
+    closeMenu: "Cerrar menú",
   },
   callbar: "¿Arrestado? Contestamos las 24 horas —",
   cta: { callPrefix: "Llame ahora:", request: "Solicitar un Fiador" },

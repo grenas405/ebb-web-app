@@ -39,11 +39,30 @@ function ctaRow(copy: Copy): string {
   </div>`;
 }
 
+/** Inline SVG icons (decorative; labels live on the surrounding links). */
+const BRAND_MARK =
+  `<svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  <rect width="64" height="64" rx="14" fill="#0d0d0d"/>
+  <rect x="3" y="3" width="58" height="58" rx="11" fill="none" stroke="#c1121f" stroke-width="3"/>
+  <g fill="none" stroke="#ffd23f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="32" y1="13" x2="32" y2="51"/><line x1="18" y1="20" x2="46" y2="20"/>
+    <path d="M18 20 L12 33 H24 Z"/><path d="M46 20 L40 33 H52 Z"/><line x1="24" y1="51" x2="40" y2="51"/>
+  </g>
+  <circle cx="32" cy="20" r="3.2" fill="#ffd23f"/>
+</svg>`;
+
+const PHONE_ICON =
+  `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>`;
+
+const GLOBE_ICON =
+  `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></g></svg>`;
+
 /** Wrap a page body in the shared document shell (head, nav, footer). */
 export function layout(copy: Copy, page: PageMeta, body: string): string {
   const canonical = page.origin + page.path;
+  const current = (id: string) => page.active === id ? ` aria-current="page"` : "";
   const navLink = (id: string, label: string, href: string) =>
-    `<a href="${href}" class="${page.active === id ? "active" : ""}">${label}</a>`;
+    `<li><a class="nav-link" href="${href}"${current(id)}>${label}</a></li>`;
   const toggleHref = `${page.path}?lang=${otherLang(page.lang)}`;
   const fullTitle = `${escapeHtml(page.title)} · ${escapeHtml(BUSINESS.name)}`;
   return `<!DOCTYPE html>
@@ -69,6 +88,7 @@ ${
 ${localBusinessJsonLd(page.origin)}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/styles.css">
+<script src="/app.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">${copy.nav.home}</a>
@@ -78,18 +98,45 @@ ${localBusinessJsonLd(page.origin)}
   <a href="tel:${BUSINESS.phonePrimaryTel}">${escapeHtml(BUSINESS.phonePrimary)}</a>
 </div>
 <header class="site-header">
-  <a class="brand" href="/">
-    <span class="brand-mark" aria-hidden="true">⚖</span>
-    <span class="brand-text">${escapeHtml(BUSINESS.name)}</span>
-  </a>
-  <nav class="site-nav" aria-label="Primary">
-    ${navLink("home", copy.nav.home, "/")}
-    ${navLink("how", copy.nav.how, "/how-it-works")}
-    ${navLink("calc", copy.nav.calc, "/calculator")}
-    ${navLink("jail", copy.nav.jail, "/jail")}
-    ${navLink("contact", copy.nav.contact, "/contact")}
-    <a class="lang-toggle" href="${toggleHref}" rel="nofollow" aria-label="${copy.switchLabel}">🌐 ${copy.switchLabel}</a>
-  </nav>
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="${escapeHtml(BUSINESS.name)} — ${copy.nav.home}">
+      ${BRAND_MARK}
+      <span class="brand-text">
+        <span class="brand-name">${escapeHtml(BUSINESS.name)}</span>
+        <span class="brand-sub">${copy.nav.tagline}</span>
+      </span>
+    </a>
+    <a class="header-call" href="tel:${BUSINESS.phonePrimaryTel}" aria-label="${copy.cta.callPrefix} ${
+    escapeHtml(BUSINESS.phonePrimary)
+  }">${PHONE_ICON}</a>
+    <button class="nav-toggle" type="button" aria-controls="site-menu" aria-expanded="false"
+      aria-label="${copy.nav.openMenu}" data-label-open="${copy.nav.openMenu}" data-label-close="${copy.nav.closeMenu}">
+      <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="nav-toggle-text">${copy.nav.menu}</span>
+    </button>
+    <nav class="site-nav" id="site-menu" aria-label="Primary">
+      <ul class="nav-links">
+        ${navLink("home", copy.nav.home, "/")}
+        ${navLink("how", copy.nav.how, "/how-it-works")}
+        ${navLink("calc", copy.nav.calc, "/calculator")}
+        ${navLink("jail", copy.nav.jail, "/jail")}
+      </ul>
+      <div class="nav-actions">
+        <a class="nav-lang" href="${toggleHref}" rel="nofollow" lang="${
+    otherLang(page.lang)
+  }" hreflang="${
+    otherLang(page.lang)
+  }">${GLOBE_ICON}<span class="nav-lang-full">${copy.switchLabel}</span><span class="nav-lang-short" aria-hidden="true">${copy.switchTo.toUpperCase()}</span></a>
+        <a class="nav-phone" href="tel:${BUSINESS.phonePrimaryTel}">
+          ${PHONE_ICON}
+          <span class="nav-phone-text"><small>${copy.nav.callLabel}</small>${
+    escapeHtml(BUSINESS.phonePrimary)
+  }</span>
+        </a>
+        <a class="nav-cta" href="/contact"${current("contact")}>${copy.nav.contact}</a>
+      </div>
+    </nav>
+  </div>
 </header>
 <main id="main">
 ${body}
@@ -116,7 +163,6 @@ ${body}
     fill(copy.footer.legalTmpl, { year: new Date().getFullYear(), name: escapeHtml(BUSINESS.name) })
   }</p>
 </footer>
-<script src="/app.js" defer></script>
 </body>
 </html>`;
 }
