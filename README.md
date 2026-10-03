@@ -72,8 +72,7 @@ deno task start           # subsequent runs work fully offline
 ```
 
 `deno.lock` is committed, so the cached versions are pinned and integrity-checked. To prove the
-cache is warm, run `deno run --cached-only -A --unstable-kv main.ts` (fails fast if anything is
-missing).
+cache is warm, run `deno run --cached-only -A main.ts` (fails fast if anything is missing).
 
 ## Deployment
 
@@ -82,9 +81,18 @@ The same code runs unchanged on a VPS or Deno Deploy:
 - **VPS** — `git pull`, `deno cache main.ts`, then run `deno task start` behind a TLS-terminating
   reverse proxy (set `TRUST_PROXY=1` so client IPs and HTTPS detection work). KV persists to a local
   SQLite file.
-- **Deno Deploy** — push the repo; Deploy resolves the JSR imports from `deno.json` + `deno.lock`
-  and provides managed Deno KV automatically (no `--unstable-kv` flag needed). `staticRoot` already
-  handles Deploy's non-`file://` module URLs, so `serveDir` keeps working there.
+- **Deno Deploy** (console.deno.com) — connect the GitHub repo as a new app. The entrypoint
+  (`main.ts`) comes from the `deploy` section of `deno.json`, and Deploy resolves the JSR imports
+  from `deno.json` + `deno.lock`. Two one-time steps in the dashboard:
+  1. **Provision a Deno KV database** (Databases → Provision Database → Deno KV) and **assign it to
+     the app**. Without this, leads, stats, and rate limits are not persisted.
+  2. **Set environment variables**: `ADMIN_TOKEN` and, optionally, `NOTIFY_WEBHOOK_URL`. Leave
+     `PORT`, `HOST`, and `TRUST_PROXY` unset — Deploy routes traffic to the server itself.
+
+  Deploy can't take runtime flags like `--unstable-kv`, so KV is turned on with `"unstable": ["kv"]`
+  in `deno.json` instead. Deploy runs on its own filesystem with `file://` module URLs, so
+  `staticRoot` and `serveDir` work unchanged. The console alert transport writes to Deploy's logs;
+  set `NOTIFY_WEBHOOK_URL` so leads actually reach a phone.
 
 ### Security (OWASP-aligned)
 
