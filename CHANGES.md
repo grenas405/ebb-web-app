@@ -8,8 +8,15 @@ All notable changes to this project are documented here.
 
 - **Deno Deploy startup crash.** Deploy can't take `--unstable-kv`, so `Deno.openKv` was undefined
   and the app crashed at boot. KV is now enabled with `"unstable": ["kv"]` in `deno.json` (the tasks
-  no longer pass the flag). Added a `deploy.runtime` section pointing at `main.ts`, and updated the
-  README's Deploy steps (assign a KV database, set env vars).
+  no longer pass the flag). Updated the README's Deploy steps (assign a KV database, set env vars).
+- **Boots without a KV database.** If `Deno.openKv()` fails (e.g. a Deploy app with no KV database
+  attached), the app logs a warning and falls back to a new in-memory store (`src/memory_kv.ts`)
+  instead of crashing. Data in that mode does not survive restarts.
+
+### Changed
+
+- Removed the `deploy` section from `deno.json` so the app configuration (entrypoint, etc.) stays
+  editable in the Deno Deploy dashboard.
 
 ## [1.4.0] — 2026-06-16
 

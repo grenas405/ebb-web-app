@@ -33,20 +33,21 @@ the local Deno cache, so the app runs **fully offline** on any OS once the cache
 
 Small, explicit, composable functions — each module does one thing:
 
-| Module            | Responsibility                                         |
-| ----------------- | ------------------------------------------------------ |
-| `main.ts`         | Composition root: config → KV → routes → server        |
-| `src/config.ts`   | Immutable business profile + 12-factor runtime config  |
-| `src/router.ts`   | Tiny exact-match router (`get`/`post`/`match`)         |
-| `src/handlers.ts` | One small handler per route                            |
-| `src/views.ts`    | Server-rendered HTML as pure string functions          |
-| `src/kv.ts`       | Deno KV data layer (leads, testimonials, analytics)    |
-| `src/validate.ts` | Boundary input validation returning typed `Result`s    |
-| `src/security.ts` | OWASP primitives: headers, escaping, CSRF, rate limit  |
-| `src/i18n.ts`     | All EN/ES copy + language resolution (`Copy` bundle)   |
-| `src/notify.ts`   | New-lead alert transports (console + optional webhook) |
-| `src/seo.ts`      | JSON-LD, social meta, sitemap, robots                  |
-| `static/`         | `styles.css` + progressive-enhancement `app.js`        |
+| Module             | Responsibility                                         |
+| ------------------ | ------------------------------------------------------ |
+| `main.ts`          | Composition root: config → KV → routes → server        |
+| `src/config.ts`    | Immutable business profile + 12-factor runtime config  |
+| `src/router.ts`    | Tiny exact-match router (`get`/`post`/`match`)         |
+| `src/handlers.ts`  | One small handler per route                            |
+| `src/views.ts`     | Server-rendered HTML as pure string functions          |
+| `src/kv.ts`        | Deno KV data layer (leads, testimonials, analytics)    |
+| `src/memory_kv.ts` | In-memory KV fallback when no database is attached     |
+| `src/validate.ts`  | Boundary input validation returning typed `Result`s    |
+| `src/security.ts`  | OWASP primitives: headers, escaping, CSRF, rate limit  |
+| `src/i18n.ts`      | All EN/ES copy + language resolution (`Copy` bundle)   |
+| `src/notify.ts`    | New-lead alert transports (console + optional webhook) |
+| `src/seo.ts`       | JSON-LD, social meta, sitemap, robots                  |
+| `static/`          | `styles.css` + progressive-enhancement `app.js`        |
 
 Each new feature is its own small module (Unix philosophy): `i18n` owns every user-facing string and
 the rules for picking a language, so views never branch on language — they render a resolved `Copy`
@@ -81,11 +82,12 @@ The same code runs unchanged on a VPS or Deno Deploy:
 - **VPS** — `git pull`, `deno cache main.ts`, then run `deno task start` behind a TLS-terminating
   reverse proxy (set `TRUST_PROXY=1` so client IPs and HTTPS detection work). KV persists to a local
   SQLite file.
-- **Deno Deploy** (console.deno.com) — connect the GitHub repo as a new app. The entrypoint
-  (`main.ts`) comes from the `deploy` section of `deno.json`, and Deploy resolves the JSR imports
-  from `deno.json` + `deno.lock`. Two one-time steps in the dashboard:
+- **Deno Deploy** (console.deno.com) — connect the GitHub repo as a new app and set the entrypoint
+  to `main.ts` in the app configuration. Deploy resolves the JSR imports from `deno.json` +
+  `deno.lock`. Then, in the dashboard:
   1. **Provision a Deno KV database** (Databases → Provision Database → Deno KV) and **assign it to
-     the app**. Without this, leads, stats, and rate limits are not persisted.
+     the app**. Without one, the app still boots and works but falls back to an in-memory store, so
+     leads, stats, and rate limits are lost whenever the instance restarts (a warning is logged).
   2. **Set environment variables**: `ADMIN_TOKEN` and, optionally, `NOTIFY_WEBHOOK_URL`. Leave
      `PORT`, `HOST`, and `TRUST_PROXY` unset — Deploy routes traffic to the server itself.
 

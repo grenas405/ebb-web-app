@@ -6,6 +6,7 @@
  */
 
 import type { Lead } from "./validate.ts";
+import { openMemoryKv } from "./memory_kv.ts";
 
 /** Narrow alias so other modules don't import the whole Deno namespace. */
 export type Kv = Deno.Kv;
@@ -35,9 +36,21 @@ export interface NotificationLog {
   readonly detail: string;
 }
 
-/** Open the default KV store (path resolved by Deno; durable on disk). */
-export function openKv(): Promise<Kv> {
-  return Deno.openKv();
+/**
+ * Open the default KV store (on disk locally, managed on Deno Deploy). If none
+ * is available — e.g. a Deploy app with no KV database attached — fall back to
+ * an in-memory store so the site still boots; data then won't survive restarts.
+ */
+export async function openKv(): Promise<Kv> {
+  try {
+    return await Deno.openKv();
+  } catch (err) {
+    console.warn(
+      `⚠  Deno KV unavailable (${err instanceof Error ? err.message : String(err)})\n` +
+        "   Using an in-memory store: leads and stats will NOT persist across restarts.",
+    );
+    return openMemoryKv();
+  }
 }
 
 /** Persist a validated lead and return the stored record. */
